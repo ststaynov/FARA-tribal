@@ -23,22 +23,27 @@
 
     <main>
         <canvas id="theCanvas" width="1024" height="256" title="Press Play!"></canvas>
+        <div class="c-phone"></div>
         <div class="flex-container">
           <div id="crap">
             <button id="oscilloscopeButton" type="button" class="btn btn-default">Oscilloscope</button>
             <button id="frequencyBarsButton" type="button" class="btn btn-default">Frequency bars</button>
           </div>
           <div>
-            <button id="playButton" type="button" class="btn btn-primary"><h1>&#9658;</h1></button>
+              <div class="e-first-button-text"></div>
+            <button id="playButtonFirst" type="button" class="btn btn-primary"><div></div></button>
           </div>
 
           <div>
-            <button id="playButton" class="second" type="button" class="btn btn-primary"><h1>&#9658;</h1></button>
+              <div class="e-second-button-text"></div>
+            <button id="playButtonSecond" type="button" class="btn second btn-primary"><div></div></button>
           </div>
 
           <div class="e-status-bar">
             <span id="currentTime">00:00:00</span>
-            <input id="slider" type="range" value="0"/>
+            <div id="div-slider">
+                <input id="slider" type="range" value="0"/>
+            </div>
             <span id="totalTime">00:00:00</span>
           </div>
           <div id="crap">
@@ -62,6 +67,7 @@
             </label>
           </div>
         </div>
+
     </main>
 
 </body>

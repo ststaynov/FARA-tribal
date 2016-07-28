@@ -6,8 +6,24 @@ function init() {
     Read my blog post about Web Audio API:
     http://codepen.io/DonKarlssonSan/blog/fun-with-web-audio-api
   */
+    var $playButtonFirst = $('#playButtonFirst'),
+        $playButtonSecond = $('#playButtonSecond'),
+        $slider = $('#div-slider');
+
     var AudioContext;
-    var audio;
+    var audioFirst,
+        audioSecond,
+        audio;
+
+    var sliderFirstMax,
+        sliderSecondMax;
+
+    var totalTimeFirst,
+        totalTimeSecond;
+
+    var audioFirstPlaying = false,
+        audioSecondPlaying = false;
+
     var audioContext;
     var source;
     var analyser;
@@ -17,18 +33,29 @@ function init() {
     var dataArray;
     var analyserMethod = "getByteTimeDomainData";
     var slider = document.getElementById("slider");
-    var streamUrl;
+    var streamUrlFirst,
+        streamUrlSecond;
     var isIdle = true;
+
+    var refreshIntervalId;
 
     var canvasWidth = canvas.width;
     var canvasHeight = canvas.height;
 
-    function initAudio(streamUrl) {
+    function initAudio(streamUrlFirst, streamUrlSecond ) {
       AudioContext = window.AudioContext || window.webkitAudioContext;
-      audio = new Audio();
-      audio.crossOrigin = "anonymous";
+
+      audioFirst = new Audio();
+      audioSecond = new Audio();
+
+      audioFirst.crossOrigin = "anonymous";
+      audioSecond.crossOrigin = "anonymous";
+
+      audioFirst.preload = "auto";
+      audioSecond.preload = "auto";
+
       audioContext = new AudioContext();
-      source = audioContext.createMediaElementSource(audio);
+      source = audioContext.createMediaElementSource(audioFirst);
       source.connect(audioContext.destination);
       analyser = audioContext.createAnalyser();
       source.connect(analyser);
@@ -53,116 +80,59 @@ function init() {
     // The Outsider is a friend of mine.
     // The majority of his tracks are on Mixcloud:
     // https://www.mixcloud.com/outsider_music/
-    var trackPermalinkUrl = "https://soundcloud.com/macklemore/dance-off-feat-idris-elba-2";
+    var trackPermalinkUrlFirst = "https://soundcloud.com/user-50631610/paddy-telefon-kampaniya-1",
+        trackPermalinkUrlSecond = "https://soundcloud.com/user-50631610/paddy-telefon-kampaniya-2";
 
     function findTrack() {
-      get("http://api.soundcloud.com/resolve.json?url=" +  trackPermalinkUrl + "&" + clientParameter,
+       get("http://api.soundcloud.com/resolve.json?url=" +  trackPermalinkUrlFirst + "&" + clientParameter,
+           function (response) {
+         var trackInfo = JSON.parse(response);
+         sliderFirstMax = trackInfo.duration / 1000;
+         document.getElementById("totalTime").innerHTML = millisecondsToHuman(trackInfo.duration);
+         streamUrlFirst = trackInfo.stream_url + "?" + clientParameter;
+         audioFirst.src = streamUrlFirst;
+         audioFirst.play();
+         audioFirst.pause();
+       }
+      );
+      get("http://api.soundcloud.com/resolve.json?url=" +  trackPermalinkUrlSecond + "&" + clientParameter,
           function (response) {
         var trackInfo = JSON.parse(response);
-        slider.max = trackInfo.duration / 1000;
-        document.getElementById("totalTime").innerHTML = millisecondsToHuman(trackInfo.duration);
-        document.getElementById("artistUrl").href = trackInfo.user.permalink_url;
-        document.getElementById("artistAvatar").src = trackInfo.user.avatar_url;
-        document.getElementById("artistName").innerHTML = trackInfo.user.username;
-        document.getElementById("trackUrl").href = trackInfo.permalink_url;
-        if(trackInfo.artwork_url) {
-          document.getElementById("trackArt").src = trackInfo.artwork_url;
-        } else {
-          document.getElementById("trackArt").src = "";
-        }
-        document.getElementById("trackName").innerHTML = trackInfo.title;
-        streamUrl = trackInfo.stream_url + "?" + clientParameter;
+        sliderSecondMax = trackInfo.duration / 1000;
+        totalTimeSecond = millisecondsToHuman(trackInfo.duration);
+        streamUrlSecond = trackInfo.stream_url + "?" + clientParameter;
+        audioSecond.src = streamUrlSecond;
+        audioSecond.play();
+        audioSecond.pause();
       }
-         );
-    };
+     );
+     };
 
-    function startIdleAnimation() {
-      // Makes the sine wave height increase and decrease
-      var amplitude = 100;
-      // Makes the sine wave move to the left
-      var phase = 0;
-      var isIncreasing = false;
-      function drawIdleAnimation() {
-        canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
-        if(isIdle) {
-          requestAnimationFrame(drawIdleAnimation);
-        }
-        canvasContext.beginPath();
-        for(var x = 0; x < canvasWidth; x++){
-          canvasContext.lineTo(x, Math.sin((x+phase)/50)*amplitude + 120);
-        }
-        canvasContext.stroke();
-        phase++;
-        if(amplitude > 100) {
-          isIncreasing = false;
-        } else if(amplitude < 1) {
-          isIncreasing = true;
-        }
-
-        if(isIncreasing) {
-          amplitude++;
-        } else {
-          amplitude--;
-        }
-      }
-
-      drawIdleAnimation();
-    }
-
-    function startDrawing() {
-      // Stop drawing idle animation
-      isIdle = false;
-      analyser.fftSize = 2048;
-      var bufferLength = analyser.frequencyBinCount;
-      console.log(bufferLength);
-      dataArray = new Uint8Array(bufferLength);
-      canvasContext.lineWidth = 1;
-      canvasContext.strokeStyle = 'rgba(0, 0, 0, 1)';
-      function drawAgain() {
-        canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
-        requestAnimationFrame(drawAgain);
-
-        analyser[analyserMethod](dataArray);
-        for(var i = 0; i < bufferLength; i++){
-          canvasContext.beginPath();
-          canvasContext.moveTo(i, 255);
-          canvasContext.lineTo(i, 255 - dataArray[i]);
-          canvasContext.closePath();
-          canvasContext.stroke();
-        }
-      }
-
-      drawAgain();
-    }
-
-    function startButton_Clicked() {
-      audio.src = streamUrl;
+    function startButton_Clicked(audio) {
       audio.play();
-      slider.value = 0;
+      slider.value = audio.currentTime;
       // Using four seconds so the user can change the value of
       // the slider. Too short interval will cause the automatic
       // updating to steal the control from the user.
-      setInterval(function () {
-        slider.value = audio.currentTime;
-      }, 4000);
-
-      var currentTime = document.getElementById("currentTime");
-      setInterval(function () {
-        currentTime.innerHTML = millisecondsToHuman(audio.currentTime * 1000);
-      }, 1000);
-
-      startDrawing();
+        refreshIntervalId = setInterval(function () {
+            slider.value = audio.currentTime;
+        }, 2000);
     }
 
     function jumpTo(here) {
-      if (!audio.readyState) return false;
-      audio.currentTime = here;
-      //}
-      //audio.fastSeek(here);
+    console.log('AudioFirstPlaying: ' + audioFirstPlaying + " audioSecondPlaying" + audioSecondPlaying);
+    if(audioFirstPlaying) {
+        if (!audioFirst.readyState) return false;
+        audioFirst.currentTime = here;
+    } else {
+        if (!audioSecond.readyState) return false;
+    console.log(here);
+        audioSecond.currentTime = here;
+        }
     };
 
     slider.addEventListener("change", function () {
-      jumpTo(this.value);
+        jumpTo(this.value);
     });
 
     function millisecondsToHuman(milliseconds) {
@@ -170,24 +140,59 @@ function init() {
       date.setMilliseconds(milliseconds);
       return date.toISOString().substr(11, 8);
     };
-    document.getElementById("playButton").addEventListener("click", startButton_Clicked);
+    document.getElementById("playButtonFirst").addEventListener("click", function() {
+        pauseAudio(audioSecond);
+        if(audioFirstPlaying) {
+            $playButtonFirst.removeClass('playing');
+            $playButtonSecond.removeClass('playing');
+            $slider.removeClass('visible');
+            audioFirstPlaying = false;
+            audioSecondPlaying = false;
+            pauseAudio(audioFirst);
+        } else {
+            clearInterval(refreshIntervalId);
+            $playButtonSecond.removeClass('playing');
+            $playButtonFirst.addClass('playing');
+            slider.max = sliderFirstMax;
+            if($slider.hasClass('visible')){}
+            else {
+                $slider.addClass('visible');
+            }
+            audioFirstPlaying = true;
+            audioSecondPlaying = false;
 
-    document.getElementById("oscilloscopeButton").addEventListener("click", function(){
-      analyserMethod = "getByteTimeDomainData";
-      startDrawing();
+            startButton_Clicked(audioFirst);
+        }
+    });
+    document.getElementById("playButtonSecond").addEventListener("click", function() {
+        pauseAudio(audioFirst);
+        if(audioSecondPlaying) {
+            $playButtonFirst.removeClass('playing');
+            $playButtonSecond.removeClass('playing');
+            $slider.removeClass('visible');
+            audioFirstPlaying = false;
+            audioSecondPlaying = false;
+            pauseAudio(audioSecond);
+        } else {
+            clearInterval(refreshIntervalId);
+
+            if($slider.hasClass('visible')){}
+            else {
+                $slider.addClass('visible');
+            }
+            slider.max = sliderSecondMax;
+            $playButtonFirst.removeClass('playing');
+            $playButtonSecond.addClass('playing');
+            audioSecondPlaying = true;
+            audioFirstPlaying = false;
+            startButton_Clicked(audioSecond, streamUrlSecond);
+        }
     });
 
-    document.getElementById("frequencyBarsButton").addEventListener("click", function(){
-      analyserMethod = "getByteFrequencyData";
-      startDrawing();
-    });
+    function pauseAudio(audio) {
+        audio.pause();
+    }
 
-    document.getElementById("findButton").addEventListener("click", function(){
-      trackPermalinkUrl = document.getElementById("trackUrlSearch").value;
-      findTrack();
-    });
-
-    startIdleAnimation();
     findTrack();
     initAudio();
 }
