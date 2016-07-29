@@ -1,5 +1,13 @@
+//
+// if((navigator.userAgent.match(/iPhone/i)) ||
+//  (navigator.userAgent.match(/iPod/i))) {
+//    console.log('guz');
+// } else {
+//     window.onload = init;
+// }
+    window.onload = init;
 
-window.onload = init;
+
 
 function init() {
   /*
@@ -8,7 +16,8 @@ function init() {
   */
     var $playButtonFirst = $('#playButtonFirst'),
         $playButtonSecond = $('#playButtonSecond'),
-        $slider = $('#div-slider');
+        $slider = $('#div-slider'),
+        $body = $('body');
 
     var AudioContext;
     var audioFirst,
@@ -80,11 +89,14 @@ function init() {
     // The Outsider is a friend of mine.
     // The majority of his tracks are on Mixcloud:
     // https://www.mixcloud.com/outsider_music/
-    var trackPermalinkUrlFirst = "https://soundcloud.com/user-50631610/paddy-telefon-kampaniya-1",
-        trackPermalinkUrlSecond = "https://soundcloud.com/user-50631610/paddy-telefon-kampaniya-2";
+    var trackPermalinkUrlFirst = "275604209",
+        trackPermalinkUrlSecond = "275604335";
+
+    var firstTrackUrl,
+        secondTrackUrl;
 
     function findTrack() {
-       get("http://api.soundcloud.com/resolve.json?url=" +  trackPermalinkUrlFirst + "&" + clientParameter,
+       get(firstTrackUrl,
            function (response) {
          var trackInfo = JSON.parse(response);
          sliderFirstMax = trackInfo.duration / 1000;
@@ -95,12 +107,13 @@ function init() {
          audioFirst.pause();
        }
       );
-      get("http://api.soundcloud.com/resolve.json?url=" +  trackPermalinkUrlSecond + "&" + clientParameter,
+      get(secondTrackUrl,
           function (response) {
         var trackInfo = JSON.parse(response);
         sliderSecondMax = trackInfo.duration / 1000;
         totalTimeSecond = millisecondsToHuman(trackInfo.duration);
         streamUrlSecond = trackInfo.stream_url + "?" + clientParameter;
+        console.log('Responded');
         audioSecond.src = streamUrlSecond;
         audioSecond.play();
         audioSecond.pause();
@@ -111,6 +124,7 @@ function init() {
     function startButton_Clicked(audio) {
       audio.play();
       slider.value = audio.currentTime;
+      console.log("in startButton_Clicked mathod");
       // Using four seconds so the user can change the value of
       // the slider. Too short interval will cause the automatic
       // updating to steal the control from the user.
@@ -142,6 +156,7 @@ function init() {
     };
     document.getElementById("playButtonFirst").addEventListener("click", function() {
         pauseAudio(audioSecond);
+        console.log('First Button Pressed');
         if(audioFirstPlaying) {
             $playButtonFirst.removeClass('playing');
             $playButtonSecond.removeClass('playing');
@@ -166,6 +181,7 @@ function init() {
     });
     document.getElementById("playButtonSecond").addEventListener("click", function() {
         pauseAudio(audioFirst);
+        console.log('Second Button Pressed');
         if(audioSecondPlaying) {
             $playButtonFirst.removeClass('playing');
             $playButtonSecond.removeClass('playing');
@@ -185,7 +201,7 @@ function init() {
             $playButtonSecond.addClass('playing');
             audioSecondPlaying = true;
             audioFirstPlaying = false;
-            startButton_Clicked(audioSecond, streamUrlSecond);
+            startButton_Clicked(audioSecond);
         }
     });
 
@@ -193,6 +209,26 @@ function init() {
         audio.pause();
     }
 
-    findTrack();
-    initAudio();
+    if (navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1) {
+        console.log('add the f* class');
+        $('#div-slider').addClass('is-safari');
+        $body.addClass('show-overlay');
+        console.log("why you no work?");
+
+        firstTrackUrl = "http://api.soundcloud.com/tracks/" +  trackPermalinkUrlFirst + "?" + clientParameter,
+        secondTrackUrl = "http://api.soundcloud.com/tracks/" +  trackPermalinkUrlSecond + "?" + clientParameter;
+
+       document.getElementById("load").addEventListener("click", function() {
+           $body.addClass('hide-overlay');
+           findTrack();
+           initAudio();
+       });
+    } else {
+        firstTrackUrl = "http://api.soundcloud.com/resolve.json?url=https://soundcloud.com/user-50631610/paddy-telefon-kampaniya-1&client_id=3b2585ef4a5eff04935abe84aad5f3f3"
+        secondTrackUrl = "http://api.soundcloud.com/resolve.json?url=https://soundcloud.com/user-50631610/paddy-telefon-kampaniya-2&client_id=3b2585ef4a5eff04935abe84aad5f3f3";
+        console.log('Audio Initiated');
+        $body.addClass('hide-overlay');
+        findTrack();
+        initAudio();
+    }
 }
